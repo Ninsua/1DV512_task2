@@ -43,12 +43,11 @@ public class DiningPhilosopher {
 			// Main thread sleeps till time of simulation
 			Thread.sleep(SIMULATION_TIME);
 
-			/*	TODO
-			 *  Stop all philosophers.
-			 *  Add comprehensive comments to explain your implementation.
+			/*
+			 * Stops all philosophers/Interrupts all threads
+			 * The interrupted thread behavior is dealt with in the Philosophers class
 			 */
-
-
+			executorService.shutdownNow();
 		} finally {
 			executorService.shutdown();
 			executorService.awaitTermination(10, TimeUnit.MILLISECONDS);
@@ -64,14 +63,29 @@ public class DiningPhilosopher {
 
 		//create the executor service
 		executorService = Executors.newFixedThreadPool(NUMBER_OF_PHILOSOPHERS);
-
-		/* TODO
-		 * Add chopsticks,
-		 * Add philosophers, and
-		 * Assign the corresponding chopsticks.
-		 * Add comprehensive comments to explain your implementation.
-		 */
-
+		
+		//Adds chopsticks equal to the amount of philosophers
+		for (int i = 0; i < NUMBER_OF_PHILOSOPHERS; i++) {
+			chopSticks.add(new ChopStick(i));
+		}
+		
+		//Add philosophers and assign the corresponding chopsticks.
+		for (int i = 0; i < NUMBER_OF_PHILOSOPHERS; i++) {
+			ChopStick leftChopStick, rightChopstick;
+			
+			rightChopstick = chopSticks.get(i);
+			
+			//Makes sure the last philosopher gets the first chopstick in their left hand.
+			//Otherwise they get the next chopstick
+			if (i == NUMBER_OF_PHILOSOPHERS-1) {	
+				leftChopStick = chopSticks.get(0);
+			}
+			else {
+				leftChopStick = chopSticks.get(i+1);
+			}
+			
+			philosophers.add(new Philosopher(i,leftChopStick,rightChopstick,SEED,DEBUG));
+		}
 	}
 
 	public ArrayList<Philosopher> getPhilosophers() {

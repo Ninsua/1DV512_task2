@@ -3,11 +3,13 @@ import java.util.Random;
 public class Philosopher implements Runnable {
 	
 	private int id;
+	private final boolean DEBUG_MODE;
 	
 	private final ChopStick leftChopStick;
 	private final ChopStick rightChopStick;
 	
 	private Random randomGenerator = new Random();
+	private final int RANDOM_TIME = 1000; //Random time dipswitch. Default is 1000.
 	
 	private int numberOfEatingTurns = 0;
 	private int numberOfThinkingTurns = 0;
@@ -17,10 +19,11 @@ public class Philosopher implements Runnable {
 	private double eatingTime = 0;
 	private double hungryTime = 0;
 	
-	public Philosopher(int id, ChopStick leftChopStick, ChopStick rightChopStick, int seed) {
+	public Philosopher(int id, ChopStick leftChopStick, ChopStick rightChopStick, int seed, boolean debug) {
 		this.id = id;
 		this.leftChopStick = leftChopStick;
 		this.rightChopStick = rightChopStick;
+		DEBUG_MODE = debug;
 		
 		/*
 		 * set the seed for this philosopher. To differentiate the seed from the other philosophers, we add the philosopher id to the seed.
@@ -46,27 +49,15 @@ public class Philosopher implements Runnable {
 	}
 
 	public double getAverageThinkingTime() {
-		/* TODO
-		 * Return the average thinking time
-		 * Add comprehensive comments to explain your implementation
-		 */
-		return 0;
+		return thinkingTime/numberOfThinkingTurns;
 	}
 
 	public double getAverageEatingTime() {
-		/* TODO
-		 * Return the average eating time
-		 * Add comprehensive comments to explain your implementation
-		 */
-		return 0;
+		return eatingTime/numberOfEatingTurns;
 	}
 
 	public double getAverageHungryTime() {
-		/* TODO
-		 * Return the average hungry time
-		 * Add comprehensive comments to explain your implementation
-		 */
-		return 0;
+		return hungryTime/numberOfHungryTurns;
 	}
 	
 	public int getNumberOfThinkingTurns() {
@@ -95,14 +86,130 @@ public class Philosopher implements Runnable {
 
 	@Override
 	public void run() {
-		/* TODO
+		/*
 		 * Think,
 		 * Hungry,
 		 * Eat,
 		 * Repeat until thread is interrupted
 		 * Increment the thinking/eating turns after thinking/eating process has finished.
-		 * Add comprehensive comments to explain your implementation, including deadlock prevention/detection
 		 */
 		
+		//Think, hungry and eat loop
+		try {
+			while (!Thread.currentThread().isInterrupted()) {
+				//Thinking
+				thinking();
+				
+				//Hungry
+				hungry();
+				
+				//Eating
+				eating();
+			}
+		} catch (InterruptedException e) {
+			//e.printStackTrace();
+		} finally {
+			if (DEBUG_MODE)
+				System.out.println("Philosopher "+id+" has quit");
+		}
+	}
+	
+	//The philosophers thinking function
+	private void thinking() throws InterruptedException {
+		numberOfThinkingTurns++;
+		
+		if (DEBUG_MODE)
+			System.out.println("Philosopher "+id+" is THINKING");
+		
+		int thinkingRandomTime = randomTime(); 
+		Thread.sleep(thinkingRandomTime);
+		thinkingTime += thinkingRandomTime;
+	}
+	
+	//The philosophers hungry function
+	private void hungry() throws InterruptedException {
+		numberOfHungryTurns++;
+		
+		if (DEBUG_MODE)
+			System.out.println("Philosopher "+id+" is HUNGRY");
+
+		boolean hasTwoChopsticks = false;
+		long timeCount = System.currentTimeMillis();
+		while (!hasTwoChopsticks && !Thread.currentThread().isInterrupted()) {
+			//If the left is available but the right isn't the philosopher drops the left one
+			
+			//Attemps to pick up the left chopstick.
+			if (leftChopStick.pickUp()) {
+				
+				//Prints debug message
+				if (DEBUG_MODE)
+					pickedUpChopstickMsg(leftChopStick);
+				
+				//Attemps to pick up the right chopstick
+				if (rightChopStick.pickUp()) {
+					
+					//Prints debug message
+					if (DEBUG_MODE)
+						pickedUpChopstickMsg(rightChopStick);
+				}
+				
+				//Drops left if the right cannot be pickedup
+				else {
+					leftChopStick.putDown();
+					
+					if (DEBUG_MODE)
+						putDownChopstickMsg(leftChopStick);
+				}
+			}
+			
+			if (rightChopStick.holds() && leftChopStick.holds()) {
+				hasTwoChopsticks = true;	//Exists loop if philosopher has 2 chopsticks
+			}
+		}
+		
+		//Adds time waiting to hungry time.
+		hungryTime += System.currentTimeMillis()-timeCount;
+	}
+	
+	//The philosophers eat function
+	private void eating() throws InterruptedException {
+		numberOfEatingTurns++;
+		
+		if (DEBUG_MODE)
+			System.out.println("Philosopher "+id+" is EATING");
+		
+		//Sleeps thread for random time and adds the sleept time to the total eating time.
+		int eatingRandomTime = randomTime();
+		Thread.sleep(eatingRandomTime);
+		eatingTime += eatingRandomTime;
+		
+		//Puts down both chopsticks when the philosophers has finished eating
+		putDownChopsticks();
+	}
+	
+	//Generates a random time between based on the RANDOM_TIME dipswitch
+	private int randomTime() {
+		return randomGenerator.nextInt(RANDOM_TIME);
+	}
+	
+	//Puts down both chopsticks
+	private void putDownChopsticks() {
+		rightChopStick.putDown();
+		leftChopStick.putDown();
+		
+		if (DEBUG_MODE) {
+			putDownChopstickMsg(rightChopStick);
+			putDownChopstickMsg(leftChopStick);
+		}
+	}
+	
+	//Message refactoring
+	private void pickedUpChopstickMsg(ChopStick chopId) {
+		System.out.println("Philosopher "+id+" picked up chopstick "+chopId.getId());
+	}
+	
+	//Message refactoring
+	private void putDownChopstickMsg(ChopStick chopId) {
+		System.out.println("Philosopher "+id+" put down chopstick "+chopId.getId());
 	}
 }
